@@ -29,13 +29,14 @@ public class MainActivity extends AppCompatActivity {
     private static List<ParseObject> allObjects = new ArrayList<ParseObject>();
     private List<Date> strings = new ArrayList<Date>();
     private List<Float> values = new ArrayList<Float>();
+    private List<Float> hvalues = new ArrayList<Float>();
     private List<Entry> entries = new ArrayList<>();
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Parse.initialize(this, "*******************", "****************");
+        Parse.initialize(this, "*********************", "************************");
 
         // Following code snippet allows you to test parse connectivity and ability to create object
         /*
@@ -102,13 +103,15 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void done(List<ParseObject> objects, ParseException e) {
                 if (e == null) {
-                    System.out.println("Printer: "+objects.size());
                     for(int i = 0; i < objects.size();i++)
                     {
                         strings.add(i,objects.get(i).getCreatedAt());
                         values.add(i,(float) objects.get(i).getDouble("temp"));
+                        hvalues.add(i,(float)objects.get(i).getDouble("humidity"));
                         allObjects.add(i,objects.get(i));
                     }
+                    System.out.println("Printers: "+objects.size());
+                    System.out.println("AllObject size swag: "+ allObjects.size());
                     if(skip==0) {
                         System.out.println(strings);
                         System.out.println(strings.size());
@@ -116,25 +119,27 @@ public class MainActivity extends AppCompatActivity {
                         System.out.println(values.size());
                         System.out.println(allObjects.size());
                         List<Entry> entries = new ArrayList<>();
+                        List<Entry> hentries = new ArrayList<>();
                         List<String> hours = new ArrayList<String>();
                         for(int i = 0; i < allObjects.size(); i++)
                             {
-                                System.out.println("temperature: "+allObjects.get(i).getDouble("temp"));
+                                //System.out.println("temperature: "+allObjects.get(i).getDouble("temp"));
                                 if(i%45==0) {
-                                    entries.add(new Entry((float) i, (float) allObjects.get(i).getDouble("temp")));
-                                    System.out.println("Index: "+i);
+                                    entries.add(new Entry((float) i, values.get(i)));
+                                    hentries.add(new Entry((float)i, hvalues.get(i)));
+                                    //System.out.println("Index: "+i);
                                     Calendar cal = Calendar.getInstance();
                                     cal.setTime(allObjects.get(i).getCreatedAt());
                                     int minute = cal.get(Calendar.MINUTE);
-                                    String minuteWord = ""+minute;
-                                    if(minuteWord.length()==1)
+                                    String minuteWord = "" + minute;
+                                    if (minuteWord.length() == 1)
                                         minuteWord = "0" + minute;
-                                    String word = cal.get(Calendar.HOUR_OF_DAY) + ":" + minuteWord.charAt(0)+"0";
-                                    hours.add(0,word);
+                                    String word = cal.get(Calendar.HOUR_OF_DAY) + ":" + minuteWord.charAt(0) + "0";
+                                    hours.add(0, word);
                                 }
                             }
-
-                        makeChart(entries, hours);
+                        System.out.println(entries);
+                        makeChart(hentries,entries, hours);
                     }
                 } else {
                 }
@@ -142,40 +147,60 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void makeChart(final List<Entry> entries, final List<String> hours)
+    void makeChart(List<Entry> hentries, List<Entry> entries, final List<String> hours)
     {
+        /*List<Entry> entries2 = new ArrayList<Entry>();
+        for(int i = 0; i < allObjects.size(); i++)
+        {
+            if(i%45==0)
+                entries2.add(new Entry((float)(i), values.get(i)));
+                //entries2.add(new Entry((float)(i), (float)i));
+        }*/
         LineChart chart = (LineChart) findViewById(R.id.chart);
+
         LineDataSet dataSet = new LineDataSet(entries,"Label");
         dataSet.setDrawCircleHole(false);
         dataSet.setDrawValues(false);
         dataSet.setCircleRadius(3f);
         dataSet.setColor(Color.RED);
-        LineData lineData = new LineData(dataSet);
-        chart.setData(lineData);
-        chart.setPinchZoom(true);
-        chart.setDragEnabled(true);
-        chart.setDragDecelerationFrictionCoef((float) 0.01);
-        YAxis leftAxis = chart.getAxisLeft();
-        leftAxis.setEnabled(true);
-        leftAxis.setDrawLabels(true);
-        leftAxis.setDrawAxisLine(true);
-        leftAxis.setTextColor(Color.RED);
-        YAxis rightAxis = chart.getAxisRight();
-        rightAxis.setEnabled(true);
-        rightAxis.setTextColor(Color.RED);
+
+
+        LineDataSet hdataSet = new LineDataSet(hentries,"Label");
+        hdataSet.setDrawCircleHole(false);
+        hdataSet.setDrawValues(false);
+        hdataSet.setCircleRadius(3f);
+        hdataSet.setColor(Color.RED);
+
         XAxis xAxis = chart.getXAxis();
         xAxis.setDrawLabels(true);
         xAxis.setDrawAxisLine(true);
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setTextColor(Color.RED);
+
+        ArrayList<LineDataSet> lines = new ArrayList<LineDataSet> ();
+        lines.add(dataSet);
+        lines.add(hdataSet);
+
+        LineData lineData = new LineData(hdataSet);
+
+        YAxis leftAxis = chart.getAxisLeft();
+        leftAxis.setEnabled(true);
+        leftAxis.setDrawLabels(true);
+        leftAxis.setDrawAxisLine(true);
+        leftAxis.setTextColor(Color.RED);
+
+        YAxis rightAxis = chart.getAxisRight();
+        rightAxis.setEnabled(true);
+        rightAxis.setTextColor(Color.RED);
+
         AxisValueFormatter axisValueFormatter = new AxisValueFormatter() {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 String word = ""+value;
-                //int num2 = (int) ((value/entries.size())*hours.size());
-                //if(num2>=0)
-                //    word = hours.get(num2);
-                System.out.println("Value: "+value);
+                int num2 = (int) ((value/allObjects.size())*hours.size());
+                if(num2>=0)
+                    word = hours.get(num2);
+                //System.out.println("Value: "+value);
                 return word;
             }
 
@@ -185,6 +210,11 @@ public class MainActivity extends AppCompatActivity {
             }
         };
         xAxis.setValueFormatter(axisValueFormatter);
+
+        chart.setData(lineData);
+        chart.setPinchZoom(true);
+        chart.setDragEnabled(true);
+        chart.setDragDecelerationFrictionCoef((float) 0.01);
         chart.setDescription("Sensor Data");
         chart.setDescriptionPosition(250f,15f);
         chart.setDescriptionColor(Color.RED);
