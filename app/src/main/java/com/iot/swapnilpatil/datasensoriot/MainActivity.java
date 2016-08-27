@@ -36,7 +36,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        Parse.initialize(this, "*********************", "************************");
+        Parse.initialize(this, "***********************", "**********************");
 
         // Following code snippet allows you to test parse connectivity and ability to create object
         /*
